@@ -25,14 +25,14 @@ velo = velo.drop(['velo_in','velo_out','fuss_in','fuss_out','objectid'],axis=1).
 
 velo_compressed = pd.DataFrame(columns=['DateTime','velo_average','velo_median','velo_std'])
 
-while len(velo.index)>=0:
+while len(velo.index)>0:
     idx = velo.index[velo['datum'] == velo['datum'][0]].tolist()
     velo_compressed = velo_compressed.append({ 'DateTime': velo['datum'][0], 'velo_average' : velo['total'][idx].mean(), 'velo_median' : velo['total'][idx].median(),'velo_std' : velo['total'][idx].std()},ignore_index=True)
     velo = velo.drop(idx).reset_index(drop=True)
 
 fuss_compressed = pd.DataFrame(columns=['DateTime','fuss_average','fuss_median','fuss_std'])
 
-while len(fussgaenger.index)>=0:
+while len(fussgaenger.index)>0:
     idx = fussgaenger.index[fussgaenger['datum'] == fussgaenger['datum'][0]].tolist()
     fuss_compressed = fuss_compressed.append({'DateTime' : fussgaenger['datum'][0], 'fuss_average': fussgaenger['total'][idx].mean(), 'fuss_median' : fussgaenger['total'][idx].median(), 'fuss_std' : fussgaenger['total'][idx].std()},ignore_index=True)
     fussgaenger = fussgaenger.drop(idx).reset_index(drop=True)
