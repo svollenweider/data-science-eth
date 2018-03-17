@@ -102,6 +102,7 @@ ENV/
 
 # datafiles
 
+datafiles/*/*
 datafiles/*.html
 datafiles/*.txt
 datafiles/*.csv
