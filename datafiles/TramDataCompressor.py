@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import os
 
-files = [f for f in os.listdir('SollIst') if f.startswith('fahrzeit')]
+year = '2017'
+files = [f for f in os.listdir('SollIst/'+year+'/') if f.startswith('fahrzeit')]
 seriestodrop = ['datum_von','datum_nach','halt_punkt_id_nach','seq_nach','halt_diva_nach','halt_punkt_diva_nach'
                 ,'soll_an_nach','soll_ab_nach','ist_ab_nach','fahrt_id','fw_no','fw_kurz','umlauf_von'
                 ,'halt_id_nach','halt_punkt_diva_von', 'soll_an_von' , 'ist_an_von','halt_kurz_nach1','ist_an_nach1'
@@ -24,7 +25,7 @@ for idx,file in enumerate(files):
 print('Concat now')
 AllData = pd.concat(Dataframes)
 AllData = AllData.sort_values('betriebsdatum').reset_index()
-AllData = AllData.rename(columns={'betriebsdatum' : 'departure'})
+AllData = AllData.rename(columns={'betriebsdatum' : 'departure', 'halt_kurz_von1' : 'Stop', 'halt_id_von' : 'halt_id' })
 print('Concat finished. Saving')
-AllData.to_csv("VBZDataLine9"+Year+"final.csv",index=False)
+AllData.to_csv("VBZDataLine9_2017_final.csv",index=False)
 print('Saving successful')
