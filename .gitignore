@@ -107,3 +107,4 @@ datafiles/*.html
 datafiles/*.txt
 datafiles/*.csv
 !datafiles/*final.csv
+!datafiles/*.py
