@@ -102,7 +102,7 @@ ENV/
 
 # datafiles
 
-datafiles/*/*
+datafiles/*
 datafiles/*.html
 datafiles/*.txt
 datafiles/*.csv
