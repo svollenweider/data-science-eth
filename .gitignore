@@ -102,9 +102,8 @@ ENV/
 
 # datafiles
 
-datafiles/*
-datafiles/*.html
-datafiles/*.txt
-datafiles/*.csv
-!datafiles/*final.csv
-!datafiles/*.py
+datafiles/**/*.html
+datafiles/**/*.txt
+datafiles/**/*.csv
+!datafiles/**/*final.csv
+
