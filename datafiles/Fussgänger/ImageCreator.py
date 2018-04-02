@@ -2,14 +2,18 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage.filters import gaussian_filter
 import imageio
+from skimage.transform import resize
 
-resolution = 50
+#Dimensions if Zurich
 
-#Dimensions of Zurich
-x = np.linspace(8.46,8.61,num=resolution)
-y = np.linspace(47.35,47.4247399,num=resolution)
+resolution= 50
+x = np.linspace(8.48,8.56,num=resolution)
+y = np.linspace(47.354,47.415,num=resolution)
 
-sigma = 3
+
+
+sigma = resolution / 20.
+
 
 # Create Fussgänger and Velo Array
 #year = input("Enter Year: ")
@@ -37,14 +41,14 @@ velo['total'] = velo['velo_in']+velo['velo_out']
 velo = velo.drop(['velo_in','velo_out','fuss_in','fuss_out','objectid'],axis=1).reset_index(drop=True).fillna(value=0)
 # Ended up with velo and fussgaenger
 
-Maximum = pd.DataFrame({'Datum':[], 'MaxFuss': [], 'MaxVelo': []})
+Maximum = pd.DataFrame({'Datum':[], 'MaxFuss': [], 'MaxVelo': [], 'Filename': []})
 
 # process Velo, Fussgaenger and Location into 3 arrays with dimensions resolution x resolution
 Test = True
 
 while(fussgaenger.shape[0]>0 and Test):
     Zeitraum = fussgaenger['datum'].loc[0]
-    image = np.zeros((resolution,resolution,3))
+    image = np.zeros((resolution,resolution,4))
     tempfuss = fussgaenger[fussgaenger['datum'] == Zeitraum].reset_index(drop=True)
     tempvelo = velo[velo['datum'] == Zeitraum].reset_index(drop=True)
     fussgaenger = fussgaenger[fussgaenger['datum'] != Zeitraum].reset_index(drop=True) #remove the used elements
@@ -65,23 +69,23 @@ while(fussgaenger.shape[0]>0 and Test):
             xidx = (np.abs(tempfuss.Longitude.loc[i]-x)).argmin()
             yidx = (np.abs(tempfuss.Lattitude.loc[i]-y)).argmin()
             image[xidx,yidx,0] = image[xidx,yidx,0] + tempfuss['total'].iloc[i]
-            image[xidx,yidx,2] = image[xidx,yidx,2] + 1
+            image[xidx,yidx,2] = image[xidx,yidx,2] + 32
     for i in range(0,tempvelo.shape[0]-1):
         if x[0] <= tempvelo.Longitude.loc[i] <= x[-1] and y[0] <= tempvelo.Lattitude.loc[i] <= y[-1]:
             xidx = (np.abs(tempvelo.Longitude.loc[i]-x)).argmin()
             yidx = (np.abs(tempvelo.Lattitude.loc[i]-y)).argmin()
             image[xidx,yidx,1] = image[xidx,yidx,1] + tempvelo['total'].iloc[i]
-            image[xidx,yidx,2] = image[xidx,yidx,2] + 1
+            image[xidx,yidx,3] = image[xidx,yidx,3] + 32
     Filename = str(Zeitraum.date())+'-'+str(Zeitraum.minute+Zeitraum.hour*60).zfill(4)
-    Maximum = Maximum.append({'Datum' : Zeitraum, 'MaxFuss' : image[:,:,0].max(), 'MaxVelo' : image[:,:,1].max()},ignore_index=True)
-    if image[:,:,0].max() > 0.:
-        image[:,:,0] = sigma**2*gaussian_filter(image[:,:,0],sigma)
-        image[:,:,0] = (image[:,:,0]/image[:,:,0].max()*255.).round()
-    if image[:,:,1].max() > 0.:
-        image[:,:,1] = gaussian_filter(image[:,:,1],sigma)
-        image[:,:,1] = (image[:,:,1]/image[:,:,1].max()*255.).round()
+    Maximum = Maximum.append({'Datum' : Zeitraum, 'MaxFuss' : image[:,:,0].max(), 'MaxVelo' : image[:,:,1].max(), 'Filename' : Filename},ignore_index=True)
+    for i in range(0,4):
+        if (image[:,:,i].max() > 0.):
+            image[:,:,i] = sigma**2*gaussian_filter(image[:,:,i],sigma)
+            if i < 2:
+                image[:,:,i] = (image[:,:,i]/image[:,:,i].max()*255.).round()
     newimage = image.astype('uint8')
-    imageio.imwrite('Images/'+Filename+'.jpg', newimage)
+    imageio.imwrite('Images/'+Filename+'.png', newimage)
+    break
 Maximum.to_csv("MaxData"+year+"final.csv",index=False)  
         
         
