@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from scipy.ndimage.filters import gaussian_filter
 import imageio
-from skimage.transform import resize
 
 #Dimensions if Zurich
 
@@ -69,13 +68,13 @@ while(fussgaenger.shape[0]>0 and Test):
             xidx = (np.abs(tempfuss.Longitude.loc[i]-x)).argmin()
             yidx = (np.abs(tempfuss.Lattitude.loc[i]-y)).argmin()
             image[xidx,yidx,0] = image[xidx,yidx,0] + tempfuss['total'].iloc[i]
-            image[xidx,yidx,2] = image[xidx,yidx,2] + 32
+            image[xidx,yidx,2] = image[xidx,yidx,2] + 64
     for i in range(0,tempvelo.shape[0]-1):
         if x[0] <= tempvelo.Longitude.loc[i] <= x[-1] and y[0] <= tempvelo.Lattitude.loc[i] <= y[-1]:
             xidx = (np.abs(tempvelo.Longitude.loc[i]-x)).argmin()
             yidx = (np.abs(tempvelo.Lattitude.loc[i]-y)).argmin()
             image[xidx,yidx,1] = image[xidx,yidx,1] + tempvelo['total'].iloc[i]
-            image[xidx,yidx,3] = image[xidx,yidx,3] + 32
+            image[xidx,yidx,3] = image[xidx,yidx,3] + 64
     Filename = str(Zeitraum.date())+'-'+str(Zeitraum.minute+Zeitraum.hour*60).zfill(4)
     Maximum = Maximum.append({'Datum' : Zeitraum, 'MaxFuss' : image[:,:,0].max(), 'MaxVelo' : image[:,:,1].max(), 'Filename' : Filename},ignore_index=True)
     for i in range(0,4):
