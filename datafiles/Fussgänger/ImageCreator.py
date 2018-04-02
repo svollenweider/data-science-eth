@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.ndimage.filters import gaussian_filter
 import imageio
 
-#Dimensions if Zurich
+#Dimensions of Zurich
 
 resolution= 50
 x = np.linspace(8.48,8.56,num=resolution)
