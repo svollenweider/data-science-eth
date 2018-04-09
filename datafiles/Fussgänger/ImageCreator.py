@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
 from scipy.ndimage.filters import gaussian_filter
+from skimage.transform import resize
 import imageio
 
 #Dimensions of Zurich
 
-resolution= 50
+resolution= 120
 x = np.linspace(8.48,8.56,num=resolution)
 y = np.linspace(47.354,47.415,num=resolution)
 
@@ -42,10 +43,9 @@ velo = velo.drop(['velo_in','velo_out','fuss_in','fuss_out','objectid'],axis=1).
 
 Maximum = pd.DataFrame({'Datum':[], 'MaxFuss': [], 'MaxVelo': [], 'Filename': []})
 
-# process Velo, Fussgaenger and Location into 3 arrays with dimensions resolution x resolution
-Test = True
+size = np.array([15,15])
 
-while(fussgaenger.shape[0]>0 and Test):
+while(fussgaenger.shape[0]>0):
     Zeitraum = fussgaenger['datum'].loc[0]
     image = np.zeros((resolution,resolution,4))
     tempfuss = fussgaenger[fussgaenger['datum'] == Zeitraum].reset_index(drop=True)
@@ -75,16 +75,19 @@ while(fussgaenger.shape[0]>0 and Test):
             yidx = (np.abs(tempvelo.Lattitude.loc[i]-y)).argmin()
             image[xidx,yidx,1] = image[xidx,yidx,1] + tempvelo['total'].iloc[i]
             image[xidx,yidx,3] = image[xidx,yidx,3] + 64
-    Filename = str(Zeitraum.date())+'-'+str(Zeitraum.minute+Zeitraum.hour*60).zfill(4)
+    Filename = str(Zeitraum.date())+'-'+str(Zeitraum.hour).zfill(2) + str(Zeitraum.minute).zfill(2)
     Maximum = Maximum.append({'Datum' : Zeitraum, 'MaxFuss' : image[:,:,0].max(), 'MaxVelo' : image[:,:,1].max(), 'Filename' : Filename},ignore_index=True)
     for i in range(0,4):
         if (image[:,:,i].max() > 0.):
             image[:,:,i] = sigma**2*gaussian_filter(image[:,:,i],sigma)
             if i < 2:
                 image[:,:,i] = (image[:,:,i]/image[:,:,i].max()*255.).round()
-    newimage = image.astype('uint8')
-    imageio.imwrite('Images/'+Filename+'.png', newimage)
-    break
+    imped = resize(image[:,:,0],size*3,preserve_range=True).round().astype('uint8')
+    imcycl = resize(image[:,:,1],size*2,preserve_range=True).round().astype('uint8')
+    impedc = resize(image[:,:,2],size,preserve_range=True).round().astype('uint8')
+    imcyclc = resize(image[:,:,3],size,preserve_range=True).round().astype('uint8') 
+    gsimage = np.append(imped,np.append(imcycl,np.append(impedc,imcyclc,axis=0),axis=1),axis=0)  #compactify into single image
+    imageio.imwrite('Images/'+Filename+'.jpg', gsimage)
 Maximum.to_csv("MaxData"+year+"final.csv",index=False)  
         
         

@@ -105,5 +105,6 @@ ENV/
 datafiles/**/*.html
 datafiles/**/*.txt
 datafiles/**/*.csv
+datafiles/**/*.jpg
 !datafiles/**/*final.csv
 
