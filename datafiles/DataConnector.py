@@ -3,31 +3,14 @@ import numpy as np
 from ExternalDataHTMLtoCSVconverter import CreateExternalData
 from TramDataCompressor import TramData
 from Fussgaenger.TrafficCreator import CreateTrafficData
-from multiprocessing import Process,Value,Array
-
-years = ['2017']
-Create = False
-
-def CreateEntry():
-    while index:
-        Time = index-pd.Timedelta('1h')
-        ExternalRow = External[External.index<Time]
-        if ExternalRow.empty:
-            continue
-        TrafficRow = Traffic[Traffic.index<Time]
-        TramEarly = Tram[np.all(np.vstack([index-pd.Timedelta('1h10m')<Tram.index,Tram.index<index-pd.Timedelta('1h'),row['fahrzeug']==Tram['fahrzeug']]),axis=0)]
-        if TramEarly.empty:
-            prevDelay = 0
-        else:
-            prevDelay = TramEarly.iloc[-1]['Delay']
-        ListofData.append([index]+row.tolist()+TrafficRow.iloc[-1].tolist()+ExternalRow.iloc[-1].tolist()+[prevDelay])
-        break
 
 AllData = pd.DataFrame(columns=['datetime','richtung','Stop','fahrzeug','Distance','Delay','Filename','MaxFuss','MaxVelo','Days',
  'Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior'])
 
+ 
+years = ['2017']
+Create = False
 
-ListofData = []
 
 for year in years:
     if Create:
@@ -41,7 +24,6 @@ for year in years:
     Traffic = pd.read_csv("Fussgaenger/MaxData"+year+"final.csv",header=0,index_col=['Datum'],parse_dates=True,infer_datetime_format=True)
     External = pd.read_csv("ExternalData/ExternalData"+year+"final.csv",header=0,index_col=['Datum Uhrzeit'],parse_dates=True,infer_datetime_format=True)
     Tram = pd.read_csv("SollIst/Results/VBZDataLine9_"+year+".csv",header=0,index_col=['departure'],parse_dates=True,infer_datetime_format=True)
-    index = Array('index',Tram.index.values)
     for index,row in Tram.iterrows():
         Time = index-pd.Timedelta('1h')
         ExternalRow = External[External.index<Time]
@@ -53,6 +35,8 @@ for year in years:
             prevDelay = 0
         else:
             prevDelay = TramEarly.iloc[-1]['Delay']
+        AllData.loc[index] = [index]+row.tolist()+TrafficRow.iloc[-1].tolist()+ExternalRow.iloc[-1].tolist()+[prevDelay]
+
         break
             
 
