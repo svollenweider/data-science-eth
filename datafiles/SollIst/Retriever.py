@@ -3,7 +3,7 @@ import urllib.request as url
 import re
 import os
  
- 
+year='2017'
 website = "https://data.stadt-zuerich.ch/dataset/vbz_fahrzeiten_ogd_"+year
 
 html_page = url.urlopen(website)
