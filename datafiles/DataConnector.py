@@ -14,7 +14,7 @@ def labelling(delay):
     if delay<150: return "Delay between 1 min and 2.5 min"
     if delay<300: return "Delay between 2.5 min and 5 min"
     if delay<480: return "Delay between 5 min and 8 min"
-    return: "Delay greater than 8 min"
+    return "Delay greater than 8 min"
 
 def worker(counter,q,year,no): #worker that takes an element and puts it into a queue
     print("Worker " + str(no) + " started")
