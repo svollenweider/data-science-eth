@@ -44,7 +44,7 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
             prevDelay = 0
         else:
             prevDelay = TramEarly.iloc[-1]['Delay']
-        queput = [Time]+row.tolist()+TrafficRow.iloc[-1].tolist()+ExternalRow.iloc[-1].tolist()+[prevDelay]+[labelling(row["Delay"]]
+        queput = np.array([Time]+row.tolist()+TrafficRow.iloc[-1].tolist()+ExternalRow.iloc[-1].tolist()+[prevDelay]+[labelling(row["Delay"])],dtype=object)
         q.put(queput)
         if localit % int(Tram.shape[0] *0.005) == 0:
             print(str(localit*1./Tram.shape[0]*100) +" %")
@@ -55,6 +55,7 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
     
 def combiner(q,NoProcesses,counter,pickup = False): #takes elements from queue and puts them in DataFrame
     ended = 0
+    saverproc = Process()
     print("Combiner started")
     dfcolumns = ['Datum Uhrzeit','richtung','Stop','fahrzeug','Distance','Delay','Filename','MaxFuss','MaxVelo','Days',
  'Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','label']
@@ -63,19 +64,21 @@ def combiner(q,NoProcesses,counter,pickup = False): #takes elements from queue a
     else:
         AllData = pd.DataFrame(index=range(3000000),columns=dfcolumns)
     location = 0
+    ValueArray = np.empty((3000000,len(dfcolumns)),dtype=object)
     while NoProcesses > ended:
         element = q.get()
         if type(element) is str:
             if element == "END":
                 ended += 1
             if element == "Save":
-                SortedList = ['Datum Uhrzeit','richtung','Distance','Filename','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','Delay']
-                SortedData = AllData[SortedList]
+                SortedList = ['Datum Uhrzeit','richtung','Distance','Filename','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','Delay','label']     
                 print("Saving at " + str(counter.value))
-                (SortedData.dropna(axis=0)).to_csv("FinalData/AllData.csv",index=False)
-                (pd.DataFrame(data=[counter.value])).to_csv("FinalData/LastElement.csv",index=False)           
+                if saverproc.is_alive(): print("Warning, saving to slow, skipping")
+                else:
+                    saverproc = Process(target=saver, args=(counter.value,ValueArray,dfcolumns))
+                    saverproc.start()
         else:          
-            AllData.loc[location] = dict(zip(dfcolumns, element))
+            ValueArray[location] = element
             location +=1
             
     SortedList = ['Datum Uhrzeit','richtung','Distance','Filename','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','Delay','label']
@@ -83,6 +86,10 @@ def combiner(q,NoProcesses,counter,pickup = False): #takes elements from queue a
     print("Saving")
     (SortedData.dropna(axis=1)).to_csv("FinalData/AllData.csv",index=False)
     print("Saved")
+    
+def saver(ctr,VA,dfcolumns):
+    np.savetxt("FinalData/LastElement.csv",np.array([ctr]))
+    (pd.DataFrame(data=VA,columns=dfcolumns)).to_csv("FinalData/AllData.csv",index=False)  
 
     
 if __name__ == '__main__':
@@ -91,10 +98,10 @@ if __name__ == '__main__':
     ContinueFromCheckpoint = False
     NoofProcesses = 6
     if ContinueFromCheckpoint:
-        counter=Value('i',pd.read_csv("FinalData/LastElement.csv")['0'].loc[0])
+        counter=Value('i',np.loadtxt("FinalData/LastElement.csv",dtype=int)[0])
     else:
         counter=Value('i',0)
-    que = Queue(10)
+    que = Queue()
     for year in years:
         if Create:
             print('WeatherData')
