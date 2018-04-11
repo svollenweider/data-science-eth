@@ -7,6 +7,15 @@ from multiprocessing import Process,Value,Queue
 
 #only works directly in python prompt, ipython does not work
 
+def labelling(delay):
+    if delay<=0: return "No delay"
+    if delay<30: return "Delay between 0 and 30s"
+    if delay<60: return "Delay between 30 and 60 s"
+    if delay<150: return "Delay between 1 min and 2.5 min"
+    if delay<300: return "Delay between 2.5 min and 5 min"
+    if delay<480: return "Delay between 5 min and 8 min"
+    return: "Delay greater than 8 min"
+
 def worker(counter,q,year,no): #worker that takes an element and puts it into a queue
     print("Worker " + str(no) + " started")
     Traffic = pd.read_csv("Fussgaenger/MaxData"+year+"final.csv",header=0,index_col=['Datum'],parse_dates=True,infer_datetime_format=True)
@@ -35,7 +44,7 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
             prevDelay = 0
         else:
             prevDelay = TramEarly.iloc[-1]['Delay']
-        queput = [Time]+row.tolist()+TrafficRow.iloc[-1].tolist()+ExternalRow.iloc[-1].tolist()+[prevDelay]
+        queput = [Time]+row.tolist()+TrafficRow.iloc[-1].tolist()+ExternalRow.iloc[-1].tolist()+[prevDelay]+[labelling(row["Delay"]]
         q.put(queput)
         if localit % int(Tram.shape[0] *0.005) == 0:
             print(str(localit*1./Tram.shape[0]*100) +" %")
@@ -48,7 +57,7 @@ def combiner(q,NoProcesses,counter,pickup = False): #takes elements from queue a
     ended = 0
     print("Combiner started")
     dfcolumns = ['Datum Uhrzeit','richtung','Stop','fahrzeug','Distance','Delay','Filename','MaxFuss','MaxVelo','Days',
- 'Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior']
+ 'Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','label']
     if pickup:
         AllData = pd.read_csv("FinalData/AllData.csv",index=range(3000000),header=0,parse_dates=True,infer_datetime_format=True)
     else:
@@ -69,7 +78,7 @@ def combiner(q,NoProcesses,counter,pickup = False): #takes elements from queue a
             AllData.loc[location] = dict(zip(dfcolumns, element))
             location +=1
             
-    SortedList = ['Datum Uhrzeit','richtung','Distance','Filename','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','Delay']
+    SortedList = ['Datum Uhrzeit','richtung','Distance','Filename','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','Delay','label']
     SortedData = AllData[SortedList]
     print("Saving")
     (SortedData.dropna(axis=1)).to_csv("FinalData/AllData.csv",index=False)
