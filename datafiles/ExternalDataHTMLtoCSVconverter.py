@@ -38,6 +38,8 @@ def CreateExternalData(year):
     df['Windgeschwindigkeit'] = df['Windgeschwindigkeit']/10.
 
     df['Windrichtung'] = df['Windrichtung']/360.
+    
+    df['Niederschlag'] = df['Niederschlag'].rolling(window = 4, center=False, min_periods=0).sum()
 
     ColumnNames = ['Datum Uhrzeit','Days','Uhrzeit', 'Weekday', 'Specialday', 'Lufttemperatur', 'Windgeschwindigkeit','Windrichtung', 'Luftdruck', 'Niederschlag', 'Luftfeuchte']
 

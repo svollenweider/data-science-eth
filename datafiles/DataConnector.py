@@ -4,6 +4,7 @@ from ExternalDataHTMLtoCSVconverter import CreateExternalData
 from TramDataCompressor import TramData
 from Fussgaenger.TrafficCreator import CreateTrafficData
 from multiprocessing import Process,Value,Queue
+from datetime import datetime
 
 #only works directly in python prompt, ipython does not work
 
@@ -18,6 +19,7 @@ def labelling(delay):
 
 def worker(counter,q,year,no): #worker that takes an element and puts it into a queue
     print("Worker " + str(no) + " started")
+    start = datetime.now()
     Traffic = pd.read_csv("Fussgaenger/MaxData"+year+"final.csv",header=0,index_col=['Datum'],parse_dates=True,infer_datetime_format=True)
     External = pd.read_csv("ExternalData/ExternalData"+year+"final.csv",header=0,index_col=['Datum Uhrzeit'],parse_dates=True,infer_datetime_format=True)
     Tram = pd.read_csv("SollIst/Results/VBZDataLine9_"+year+".csv",header=0,index_col=['departure'],parse_dates=True,infer_datetime_format=True)
@@ -35,8 +37,14 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
             oldlocalit = localit
             localit = counter.value
             counter.value += 1
-        if ExternalRow.empty:
+        if localit % int(Tram.shape[0] *0.005) == 0:
+            percentage = localit*1./Tram.shape[0]
+            print('{:3.1f}'.format(percentage*100) +" %") 
+            print("Estimated completion: " + (start+(datetime.now()-start)/percentage).strftime('%H:%M:%S') )
+        if np.random.random()>0.05 or ExternalRow.empty:
             continue
+            if localit % 10000 == 0:
+                q.put("Save")
         fahrzeug = row['fahrzeug']
         TrafficRow = Traffic[Traffic.index<Time-pd.Timedelta('1h')]
         TramEarly = Tram[np.all(np.vstack([Time-pd.Timedelta('1h10m')<Tram.index,Tram.index<Time-pd.Timedelta('1h'),row['fahrzeug']==Tram['fahrzeug']]),axis=0)]        
@@ -46,8 +54,6 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
             prevDelay = TramEarly.iloc[-1]['Delay']
         queput = np.array([Time]+row.tolist()+TrafficRow.iloc[-1].tolist()+ExternalRow.iloc[-1].tolist()+[prevDelay]+[labelling(row["Delay"])],dtype=object)
         q.put(queput)
-        if localit % int(Tram.shape[0] *0.005) == 0:
-            print(str(localit*1./Tram.shape[0]*100) +" %")
         if localit % 10000 == 0:
             q.put("Save")
     q.put("END")
