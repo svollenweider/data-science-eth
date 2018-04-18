@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -117,3 +118,4 @@ def cnn_model(features,labels,mode):
           labels=labels, predictions=predictions["classes"])}
     return tf.estimator.EstimatorSpec(
     mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
+    
