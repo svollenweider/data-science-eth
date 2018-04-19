@@ -122,3 +122,7 @@ def cnn_model(features,labels,mode):
     return tf.estimator.EstimatorSpec(
     mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
     
+    
+ 
+ 
+    
