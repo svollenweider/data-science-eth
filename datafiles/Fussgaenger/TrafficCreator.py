@@ -9,7 +9,7 @@ def CreateTrafficData(year,CreateImage=True,path='Fussgaenger/'):
     #Dimensions of Zurich
     resolution= 120
     x = np.linspace(8.48,8.56,num=resolution)
-    y = np.linspace(47.354,47.415,num=resolution)
+    y = np.linspace(47.354,47.41,num=resolution)
     sigma = resolution / 20. #Determine Smoothing
 
     standort = (pd.read_csv(path+"verkehrszaehlungenstandortevelofussgaenger.csv", header=0))[['fk_zaehler','easting_wgs','northing_wgs','von','bis']]
@@ -38,7 +38,7 @@ def CreateTrafficData(year,CreateImage=True,path='Fussgaenger/'):
 
     Maximum = pd.DataFrame({'Datum':[], 'MaxFuss': [], 'MaxVelo': [], 'Filename': []}) #Create an array to store the maximum in
 
-    size = np.array([15,15])
+    size = np.array([12,12])
 
     while(fussgaenger.shape[0]>0):
         Zeitraum = fussgaenger['datum'].loc[0] #Get the date and time of the first entry
@@ -85,11 +85,11 @@ def CreateTrafficData(year,CreateImage=True,path='Fussgaenger/'):
             impedc = resize(image[:,:,2],size,preserve_range=True).round().astype('uint8')
             imcyclc = resize(image[:,:,3],size,preserve_range=True).round().astype('uint8') 
             gsimage = np.append(imped,np.append(imcycl,np.append(impedc,imcyclc,axis=0),axis=1),axis=0)  #compactify into single image
-            imageio.imwrite(path+'Images/'+Filename+'.jpg', gsimage)
+            imageio.imwrite(path+'Images' +str(size[0]) + '/'+Filename+'.jpg', gsimage)
     Maximum.to_csv(path+"MaxData"+year+"final.csv",index=False)  
 
 if __name__ == "__main__":
-    CreateTrafficData('2017')
+    CreateTrafficData('2017',path='')
         
         
     

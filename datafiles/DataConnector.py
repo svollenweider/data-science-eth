@@ -26,7 +26,6 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
     print("Worker " + str(no) + " Data read")
     localit=0
     with counter.get_lock():
-        oldlocalit = localit
         localit = counter.value
         counter.value += 1
     while localit < Tram.shape[0]:
@@ -54,12 +53,12 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
             prevDelay = TramEarly.iloc[-1]['Delay']
         queput = np.array([Time]+row.tolist()+TrafficRow.iloc[-1].tolist()+ExternalRow.iloc[-1].tolist()+[prevDelay]+[labelling(row["Delay"])],dtype=object)
         q.put(queput)
-        if localit % 10000 == 0:
+        if localit % 50000 == 0:
             q.put("Save")
     q.put("END")
     print("Worker " + str(no) + " ended")
     
-def combiner(q,NoProcesses,counter,pickup = False): #takes elements from queue and puts them in DataFrame
+def combiner(q,NoProcesses,counter,pickup = False,name="Trainigdata"): #takes elements from queue and puts them in DataFrame
     ended = 0
     saverproc = Process()
     print("Combiner started")
@@ -87,10 +86,10 @@ def combiner(q,NoProcesses,counter,pickup = False): #takes elements from queue a
             ValueArray[location] = element
             location +=1
             
-    SortedList = ['Datum Uhrzeit','richtung','Distance','Filename','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','Delay','label']
-    SortedData = AllData[SortedList]
+    SortedList = ['Datum Uhrzeit','richtung','Distance','Filename','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','label']
+    SortedData = pd.DataFrame(data=ValueArray,columns=dfcolumns)[SortedList]
     print("Saving")
-    (SortedData.dropna(axis=1)).to_csv("FinalData/AllData.csv",index=False)
+    (SortedData.dropna(axis=0)).to_csv("FinalData/TraingDatafinal.csv",index=False)
     print("Saved")
     
 def saver(ctr,VA,dfcolumns):
@@ -102,12 +101,12 @@ if __name__ == '__main__':
     years = ['2017']
     Create = False
     ContinueFromCheckpoint = False
-    NoofProcesses = 6
+    NoofProcesses = 7
     if ContinueFromCheckpoint:
         counter=Value('i',np.loadtxt("FinalData/LastElement.csv",dtype=int)[0])
     else:
         counter=Value('i',0)
-    que = Queue()
+    que = Queue(200)
     for year in years:
         if Create:
             print('WeatherData')
