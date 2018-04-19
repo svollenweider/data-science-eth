@@ -4,7 +4,7 @@ import tensorflow as tf
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
-imagesize = 15
+imagesize = 12
 
 def cnn_model(features,labels,mode):
     # Extract Images
@@ -40,15 +40,15 @@ def cnn_model(features,labels,mode):
           
         # Pooling Layer #1
         # First max pooling layer with a 2x2 filter and stride of 3
-        # Input Tensor Shape: [batch_size,  input size,  input size, 32]
-        # Output Tensor Shape: [batch_size,  input size/3,  input size/3, 32]
+        # Input Tensor Shape: [batch_size,  input size,  input size, 16]
+        # Output Tensor Shape: [batch_size,  input size/3,  input size/3, 16]
         pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=3)
 
         # Convolutional Layer #2
         # Computes 64 features using a 5x5 filter.
         # Padding is added to preserve width and height.
-        # Input Tensor Shape: [batch_size, 14, 14, 32]
-        # Output Tensor Shape: [batch_size, 14, 14, 64]
+        # Input Tensor Shape: [batch_size, input size/3, input size/3, 16]
+        # Output Tensor Shape: [batch_size, input size/3, input size/3, 32]
         conv2 = tf.layers.conv2d(
           inputs=pool1,
           filters=32,
@@ -58,14 +58,14 @@ def cnn_model(features,labels,mode):
 
         # Pooling Layer #2
         # Second max pooling layer with a 2x2 filter and stride of 2
-        # Input Tensor Shape: [batch_size, 14, 14, 64]
-        # Output Tensor Shape: [batch_size, 7, 7, 64]
+        # Input Tensor Shape: [batch_size, 14, 14, 32]
+        # Output Tensor Shape: [batch_size, 7, 7, 32]
         pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
 
         # Flatten tensor into a batch of vectors
         # Input Tensor Shape: [batch_size, 7, 7, 64]
         # Output Tensor Shape: [batch_size, 7 * 7 * 64]
-        pool2_flat = tf.reshape(pool2, [-1,pool2.shape[0]*pool2.shape[1]*pool2.shape[2])
+        pool2_flat = tf.reshape(pool2, [-1,pool2.shape[1]*pool2.shape[2]*pool2.shape[3])
         inputlayer = tf.concat([inputlayer,pool2_flat])
     inputlayer = tf.concat([inputlayer,features['data'])
     
@@ -101,9 +101,12 @@ def cnn_model(features,labels,mode):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    # Calculate Loss (for both TRAIN and EVAL modes)
-    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-
+    # Calculate Loss (for both TRAIN and EVAL modes) if labeled
+    #loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+    
+    #loss for floating output
+    
+    loss = tf.reduce_mean(tf.square(expected - net))
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
