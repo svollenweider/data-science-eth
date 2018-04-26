@@ -10,6 +10,8 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 imagesize = 12
 
+keys = ['richtung', 'Distance', 'MaxFuss', 'MaxVelo', 'Days', 'Uhrzeit', 'Weekday', 'Specialday', 'Lufttemperatur', 'Windgeschwindigkeit', 'Windrichtung', 'Luftdruck', 'Niederschlag', 'Luftfeuchte', 'delayprior']
+
 def mappingfunction(feature,label):
     image = tf.read_file('Images/'+feature['Filename'])
     image = tf.image.decode_jpeg(image,channels=1)
@@ -18,10 +20,10 @@ def mappingfunction(feature,label):
     return feature, label
 
 
-def train_input_fn(features, labels, batch_size):
+def train_input_fn(features, filenames, labels, batch_size):
     """An input function for training"""
     # Convert the inputs to a Dataset.
-    dataset = tf.data.Dataset.from_tensor_slices((dict(features), labels))
+    dataset = tf.data.Dataset.from_tensor_slices(({'x' : features, 'Filename' : filenames}, labels))
     # Shuffle, repeat, and batch the examples.
     dataset = dataset.map(mappingfunction)
     dataset = dataset.shuffle(10).repeat().batch(batch_size)
@@ -45,18 +47,10 @@ def cnn_model(features,labels,mode):
 
     List = [pedestrian,cyclist,pedestrianc,cyclistc]
     Sizes = [3,2,1,1]
-    
-    conv1 = tf.layers.conv2d(
-        inputs=image,
-        filters=16,
-        kernel_size=[5, 5],
-        padding="same",
-        activation=tf.nn.relu)
-    
-    
-    inputlayer = []
+    features['pedestrians'] = pedestrian
     
     # For each subimage do X to create input layer
+    '''
     for idx,zipped in enumerate(zip(Sizes,List)):
         # Convolutional Layer #1
         # Computes 32 features using a 5x5 filter with ReLU activation.
@@ -98,8 +92,10 @@ def cnn_model(features,labels,mode):
         # Output Tensor Shape: [batch_size, 7 * 7 * 64]
         pool2_flat = tf.reshape(pool2, [-1,pool2.shape[1]*pool2.shape[2]*pool2.shape[3]])
         inputlayer = tf.concat([inputlayer,pool2_flat])
-    inputlayer = tf.concat([inputlayer,features])
-    
+    '''
+    #inputlayer = tf.concat([inputlayer,features],axis=1)
+    inputlayer = features['x']
+    print(features['x'].eval())
     # Dense Layer
     # Densely connected layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
@@ -150,7 +146,7 @@ def cnn_model(features,labels,mode):
 def main(unused_argv):
     # Load training and eval data
     Dataframe = pd.read_csv("TraingDatafinal.csv",header=0)
-    dataset = train_input_fn(Dataframe.drop(["label"],axis=1),Dataframe["label"],10)
+    dataset = train_input_fn(Dataframe[keys].values,Dataframe['Filename'].values,Dataframe["label"],10)
     tram2late = tf.estimator.Estimator(model_fn=cnn_model, model_dir="/snapshots")
     tensors_to_log = {"delays": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=50)
