@@ -50,7 +50,7 @@ def cnn_model(features,labels,mode):
     features['pedestrians'] = pedestrian
     
     # For each subimage do X to create input layer
-    '''
+
     for idx,zipped in enumerate(zip(Sizes,List)):
         # Convolutional Layer #1
         # Computes 32 features using a 5x5 filter with ReLU activation.
@@ -92,7 +92,7 @@ def cnn_model(features,labels,mode):
         # Output Tensor Shape: [batch_size, 7 * 7 * 64]
         pool2_flat = tf.reshape(pool2, [-1,pool2.shape[1]*pool2.shape[2]*pool2.shape[3]])
         inputlayer = tf.concat([inputlayer,pool2_flat])
-    '''
+        
     #inputlayer = tf.concat([inputlayer,features],axis=1)
     inputlayer = features['x']
     print(features['x'].eval())
