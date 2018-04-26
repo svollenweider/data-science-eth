@@ -15,20 +15,20 @@ keys = ['richtung', 'Distance', 'MaxFuss', 'MaxVelo', 'Days', 'Uhrzeit', 'Weekda
 def mappingfunction(feature,label):
     image = tf.read_file('Images/'+feature['Filename'])
     image = tf.image.decode_jpeg(image,channels=1)
-    image = tf.image.resize_images(image, [36,60])
+    image = tf.image.convert_image_dtype(image,tf.float32)
     feature['image'] = image
     return feature, label
 
 
-def train_input_fn(features, filenames, labels, batch_size):
-    """An input function for training"""
-    # Convert the inputs to a Dataset.
-    dataset = tf.data.Dataset.from_tensor_slices(({'x' : features, 'Filename' : filenames}, labels))
-    # Shuffle, repeat, and batch the examples.
-    dataset = dataset.map(mappingfunction)
-    dataset = dataset.shuffle(10).repeat().batch(batch_size)
-    # Return the dataset
-    return dataset.make_one_shot_iterator().get_next
+def input_fn():
+    Dataframe = pd.read_csv("TraingDatafinal.csv",header=0)
+    features, filenames, labels = Dataframe[keys].values,Dataframe['Filename'].values,Dataframe["label"]
+    dataset = tf.data.Dataset.from_tensor_slices(({'x' : features, 'Filename' : filenames},labels))
+    dataset = dataset.shuffle(buffer_size=1000)
+    dataset = dataset.map(map_func=mappingfunction)
+    dataset = dataset.batch(batch_size=1000)
+    dataset = dataset.prefetch(buffer_size=100)
+    return dataset
 
 def cnn_model(features,labels,mode):
     # Extract Images
@@ -36,7 +36,7 @@ def cnn_model(features,labels,mode):
     """Model function for CNN."""
     # Input Layer
     # Reshape X to 4-D tensor: [batch_size, width, height, channels]
-  
+
     #Put all images into variables with proper size
     image = features.pop("image")
     image = tf.reshape(image,[-1,36,60,1])
@@ -50,7 +50,7 @@ def cnn_model(features,labels,mode):
     features['pedestrians'] = pedestrian
     
     # For each subimage do X to create input layer
-
+    inputlayer = None
     for idx,zipped in enumerate(zip(Sizes,List)):
         # Convolutional Layer #1
         # Computes 32 features using a 5x5 filter with ReLU activation.
@@ -91,11 +91,11 @@ def cnn_model(features,labels,mode):
         # Input Tensor Shape: [batch_size, 7, 7, 64]
         # Output Tensor Shape: [batch_size, 7 * 7 * 64]
         pool2_flat = tf.reshape(pool2, [-1,pool2.shape[1]*pool2.shape[2]*pool2.shape[3]])
-        inputlayer = tf.concat([inputlayer,pool2_flat])
-        
-    #inputlayer = tf.concat([inputlayer,features],axis=1)
-    inputlayer = features['x']
-    print(features['x'].eval())
+        if inputlayer is None:
+            inputlayer = pool2_flat
+        else: inputlayer = tf.concat([inputlayer,pool2_flat],1)
+    print(inputlayer)
+    inputlayer = tf.concat([tf.cast(features['x'],tf.float32),inputlayer],axis=1)
     # Dense Layer
     # Densely connected layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
@@ -124,11 +124,10 @@ def cnn_model(features,labels,mode):
 
     # Calculate Loss (for both TRAIN and EVAL modes) if labeled
     #loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-    
     #loss for floating output
     def reducedelay(x):
-        return 1./tf.exp(-(x-100)/50)
-        
+        return 1./tf.exp(-tf.divide(tf.subtract(tf.cast(x,tf.float32),100.),50.))
+    
     loss = tf.reduce_mean(tf.square(reducedelay(labels) - delay))
     
     # Configure the Training Op (for TRAIN mode)
@@ -145,18 +144,15 @@ def cnn_model(features,labels,mode):
 
 def main(unused_argv):
     # Load training and eval data
-    Dataframe = pd.read_csv("TraingDatafinal.csv",header=0)
-    dataset = train_input_fn(Dataframe[keys].values,Dataframe['Filename'].values,Dataframe["label"],10)
     tram2late = tf.estimator.Estimator(model_fn=cnn_model, model_dir="/snapshots")
     tensors_to_log = {"delays": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=50)
     tram2late.train(
-      input_fn=dataset,
+      input_fn=input_fn,
       steps=20000,
       hooks=[logging_hook])
     
-if __name__ == "__main__":
-    sess = tf.InteractiveSession()
+if __name__ == "__main__": 
     tf.app.run()
  
     
