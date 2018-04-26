@@ -14,6 +14,7 @@ def cnn_model(features,labels,mode):
     # Reshape X to 4-D tensor: [batch_size, width, height, channels]
   
     #Put all images into variables with proper size
+    
     pedestrian = tf.reshape(features['pedestrian'], [-1, 3*imagesize, 3*imagesize, 1])
     cyclist = tf.reshape(features['cyclist'], [-1, 2*imagesize, 2*imagesize, 1])
     pedestrianc = tf.reshape(features['pedestrianc'], [-1, imagesize, imagesize, 1])
