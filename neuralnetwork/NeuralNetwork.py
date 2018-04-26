@@ -26,8 +26,8 @@ def input_fn():
     dataset = tf.data.Dataset.from_tensor_slices(({'x' : features, 'Filename' : filenames},labels))
     dataset = dataset.shuffle(buffer_size=1000)
     dataset = dataset.map(map_func=mappingfunction)
-    dataset = dataset.batch(batch_size=1000)
-    dataset = dataset.prefetch(buffer_size=100)
+    dataset = dataset.batch(batch_size=100)
+    dataset = dataset.prefetch(buffer_size=1000)
     return dataset
 
 def cnn_model(features,labels,mode):
@@ -94,7 +94,6 @@ def cnn_model(features,labels,mode):
         if inputlayer is None:
             inputlayer = pool2_flat
         else: inputlayer = tf.concat([inputlayer,pool2_flat],1)
-    print(inputlayer)
     inputlayer = tf.concat([tf.cast(features['x'],tf.float32),inputlayer],axis=1)
     # Dense Layer
     # Densely connected layer with 1024 neurons
@@ -114,20 +113,19 @@ def cnn_model(features,labels,mode):
 
     # Logits layer
     # Input Tensor Shape: [batch_size, 1024]
-    # Output Tensor Shape: [batch_size, 10]
+    # Output Tensor Shape: [batch_size, 1]
     logits = tf.layers.dense(inputs=dropout2, units=1)
-    delay = tf.nn.softmax(logits, name="softmax_tensor") 
+    delay = tf.add(logits,0., name="softmax_tensor") 
     predictions = {"delay": delay}
     
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
     # Calculate Loss (for both TRAIN and EVAL modes) if labeled
-    #loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
     #loss for floating output
     def reducedelay(x):
-        return 1./tf.exp(-tf.divide(tf.subtract(tf.cast(x,tf.float32),100.),50.))
-    
+        return tf.subtract(1.,tf.divide(1.,tf.add(1.,tf.square(tf.divide(tf.add(tf.cast(x,tf.float32),60.),180.)))))
+
     loss = tf.reduce_mean(tf.square(reducedelay(labels) - delay))
     
     # Configure the Training Op (for TRAIN mode)
@@ -144,12 +142,11 @@ def cnn_model(features,labels,mode):
 
 def main(unused_argv):
     # Load training and eval data
-    tram2late = tf.estimator.Estimator(model_fn=cnn_model, model_dir="/snapshots")
+    tram2late = tf.estimator.Estimator(model_fn=cnn_model, model_dir="snapshots/")
     tensors_to_log = {"delays": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=50)
     tram2late.train(
       input_fn=input_fn,
-      steps=20000,
       hooks=[logging_hook])
     
 if __name__ == "__main__": 
