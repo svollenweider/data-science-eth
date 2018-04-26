@@ -51,7 +51,7 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
             prevDelay = 0
         else:
             prevDelay = TramEarly.iloc[-1]['Delay']
-        queput = np.array([Time]+row.tolist()+TrafficRow.iloc[-1].tolist()+ExternalRow.iloc[-1].tolist()+[prevDelay]+[labelling(row["Delay"])],dtype=object)
+        queput = np.array(row.drop('fahrzeug').tolist()+TrafficRow.iloc[-1].tolist()+ExternalRow.iloc[-1].tolist()+[prevDelay]+[row["Delay"], labelling(row["Delay"])],dtype=object)
         q.put(queput)
         if localit % 50000 == 0:
             q.put("Save")
@@ -62,8 +62,8 @@ def combiner(q,NoProcesses,counter,pickup = False,name="Trainigdata"): #takes el
     ended = 0
     saverproc = Process()
     print("Combiner started")
-    dfcolumns = ['Datum Uhrzeit','richtung','Stop','fahrzeug','Distance','Delay','Filename','MaxFuss','MaxVelo','Days',
- 'Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','label']
+    dfcolumns = ['richtung','Stop','Distance','Delay','Filename','MaxFuss','MaxVelo','Days',
+ 'Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','label','altlabel']
     if pickup:
         AllData = pd.read_csv("FinalData/AllData.csv",index=range(3000000),header=0,parse_dates=True,infer_datetime_format=True)
     else:
@@ -76,7 +76,6 @@ def combiner(q,NoProcesses,counter,pickup = False,name="Trainigdata"): #takes el
             if element == "END":
                 ended += 1
             if element == "Save":
-                SortedList = ['Datum Uhrzeit','richtung','Distance','Filename','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','Delay','label']     
                 print("Saving at " + str(counter.value))
                 if saverproc.is_alive(): print("Warning, saving to slow, skipping")
                 else:
@@ -86,7 +85,7 @@ def combiner(q,NoProcesses,counter,pickup = False,name="Trainigdata"): #takes el
             ValueArray[location] = element
             location +=1
             
-    SortedList = ['Datum Uhrzeit','richtung','Distance','Filename','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','label']
+    SortedList = ['Filename','richtung','Distance','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','label','altlabel']
     SortedData = pd.DataFrame(data=ValueArray,columns=dfcolumns)[SortedList]
     print("Saving")
     (SortedData.dropna(axis=0)).to_csv("FinalData/TraingDatafinal.csv",index=False)

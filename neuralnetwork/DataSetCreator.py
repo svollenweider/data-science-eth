@@ -1,18 +1,15 @@
 from skimage.io import imread
 import tensorflow as tf
 import pandas as pd
+import numpy
 
-def mappingfunction(Filename):
-    image = tf.readfile(Filename)
-    image = tf.image.decode_jpeg(image)
-    features = {
-        "pedestrian": tf.FixeddLenFeature(image[0:36,0:36])
-        "cyclist": tf.FixeddLenFeature(image[0:24,36:60])
-        "pedestrianc": tf.FixeddLenFeature(image[24:36,36:48])
-        "cyclistc": tf.FixeddLenFeature(image[24:36,48:60])
-    }
-    parsed_features = tf.parse_single_example(Filename,features)
-    return parsed_features["pedestrian"],parsed_features["cyclist",parsed_features["pedestrianc",parsed_features["cyclistc"]
+Listoffeatures = ['Filename','richtung','Distance','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte']
+
+def mappingfunction(feature,label):
+    print(feature['Filename'])
+    image = tf.read_file(feature['Filename'])
+    image = tf.image.decode_image(image)
+    return image,label
 
 
 def train_input_fn(features, labels, batch_size):
@@ -23,9 +20,9 @@ def train_input_fn(features, labels, batch_size):
     # Shuffle, repeat, and batch the examples.
     dataset = dataset.shuffle(1000).repeat().batch(batch_size)
     dataset = dataset.map(mappingfunction)
-    # Return the dataset.
+    # Return the dataset
     return dataset
 
 if __name__ = "__main__":
-    Dataframe = pd.read_csv("TrainingData_1_test.csv",header=0).drop(["Datum Uhrzeit"])
-    Test = train_input_fn(Dataframe.drop(["label"]),Dataframe["label"]])
+    Dataframe = pd.read_csv("TraingDatafinal.csv",header=0)[Listoffeatures+['label']]
+    Test = train_input_fn(Dataframe.drop(["label"],axis=1),Dataframe["label"],200)
