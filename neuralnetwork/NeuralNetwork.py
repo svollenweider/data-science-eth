@@ -131,7 +131,7 @@ def cnn_model(features,labels,mode):
     # Logits layer
     # Input Tensor Shape: [batch_size, 1024]
     # Output Tensor Shape: [batch_size, 7]
-    output = tf.layers.dense(inputs=dropout2, units=7)
+    output = tf.layers.dense(inputs=dropout2, units=8)
     #loss for floating output
     '''
     def reducedelay(x):
@@ -155,11 +155,11 @@ def cnn_model(features,labels,mode):
     def maplabelstoprob(label):
         gamma = 1
         cd = lambda x: 1/(np.pi*gamma)*tf.divide(gamma**2,tf.add(tf.square(x-tf.transpose([tf.cast(label,tf.float32)])),gamma**2))
-        return cd(tf.cast(tf.range(7),tf.float32))
+        return cd(tf.cast(tf.range(8)-1,tf.float32))
     
  
-    #loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=maplabelstoprob(labels), logits=output))
-    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=output)
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=maplabelstoprob(labels+1), logits=delay))
+    #loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=output)
     #loss = tf.square(tf.cast(labels-predictions['classes'],tf.float32))
     #loss = tf.reduce_mean(tf.sqrt(tf.square(labels - tf.cast(delay, tf.float32))))
     
@@ -170,11 +170,11 @@ def cnn_model(features,labels,mode):
       # `logging_hook`.
     } 
     
-    logs = tf.concat([tf.expand_dims(predictions['classes'],1),tf.expand_dims(labels,1)],1,name="Accuracy")
+    logs = tf.concat([tf.expand_dims(predictions['classes']-1,1),tf.expand_dims(labels,1)],1,name="Accuracy")
     
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.005)
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0005)
         train_op = optimizer.minimize(
             loss=loss,
             global_step=tf.train.get_global_step())

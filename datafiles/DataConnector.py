@@ -9,8 +9,8 @@ from datetime import datetime
 #only works directly in python prompt, ipython does not work
 
 #Determines probability that an entry is listed in the Training file, separated to "on time" and "late"
-probabilityontime = 0.01
-probabilitylate = 0.1
+probabilityontime = 0.02
+probabilitylate = 0.2
 
 #name of output file
 mode = "Training" #eval or training
