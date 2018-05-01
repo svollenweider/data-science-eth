@@ -7,15 +7,17 @@ from multiprocessing import Process,Value,Queue
 from datetime import datetime
 
 #only works directly in python prompt, ipython does not work
+probability = 0.001
+mode = "eval" #eval or training
 
 def labelling(delay):
-    if delay<=0: return "No delay"
-    if delay<30: return "Delay between 0 and 30s"
-    if delay<60: return "Delay between 30 and 60 s"
-    if delay<150: return "Delay between 1 min and 2.5 min"
-    if delay<300: return "Delay between 2.5 min and 5 min"
-    if delay<480: return "Delay between 5 min and 8 min"
-    return "Delay greater than 8 min"
+    if delay<=0: return 0 # "No delay"
+    if delay<30: return 1 # "Delay between 0 and 30s"
+    if delay<60: return 2 # "Delay between 30 and 60 s"
+    if delay<150: return 3 # "Delay between 1 min and 2.5 min"
+    if delay<300: return 4 # "Delay between 2.5 min and 5 min"
+    if delay<480:  return 5 # "Delay between 5 min and 8 min"
+    return 6 # "Delay greater than 8 min"
 
 def worker(counter,q,year,no): #worker that takes an element and puts it into a queue
     print("Worker " + str(no) + " started")
@@ -40,7 +42,7 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
             percentage = localit*1./Tram.shape[0]
             print('{:3.1f}'.format(percentage*100) +" %") 
             print("Estimated completion: " + (start+(datetime.now()-start)/percentage).strftime('%H:%M:%S') )
-        if np.random.random()>0.05 or ExternalRow.empty:
+        if np.random.random()>probability or ExternalRow.empty:
             continue
             if localit % 10000 == 0:
                 q.put("Save")
@@ -88,7 +90,7 @@ def combiner(q,NoProcesses,counter,pickup = False,name="Trainigdata"): #takes el
     SortedList = ['Filename','richtung','Distance','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','label','altlabel']
     SortedData = pd.DataFrame(data=ValueArray,columns=dfcolumns)[SortedList]
     print("Saving")
-    (SortedData.dropna(axis=0)).to_csv("FinalData/TraingDatafinal.csv",index=False)
+    (SortedData.dropna(axis=0)).to_csv("FinalData/"+mode+"Datafinal.csv",index=False)
     print("Saved")
     
 def saver(ctr,VA,dfcolumns):
