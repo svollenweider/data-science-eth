@@ -108,7 +108,4 @@ datafiles/**/*.txt
 **/*.csv
 datafiles/**/*.zip
 **/*.jpg
-!datafiles/**/*final.csv
-!neuralnetwork/DummyData.csv
-!neuralnetwork/*test.csv
-
+neuralnetwork/snapshots/*
