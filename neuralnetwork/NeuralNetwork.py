@@ -28,17 +28,15 @@ def masking(feature, label):
     mask = tf.not_equal(label,0)
     randomfloats = tf.random_uniform(mask.shape)
     addmask = tf.less(randomfloats,0.2)
-    mask = tf.logical_or(mask,addmask)
-    return mask
-    
+    return tf.logical_or(mask,addmask)    
     
  
 def input_fn():
     Dataframe = pd.read_csv("TrainingDatafinal.csv",header=0)
     features, filenames, labels = Dataframe[keys].values,Dataframe['Filename'].values,Dataframe["altlabel"]
     dataset = tf.data.Dataset.from_tensor_slices(({'x' : features, 'Filename' : filenames},labels))
-    #mask = dataset.map(map_func=masking)
-    #dataset = tf.boolean_mask(dataset,mask)
+    mask = dataset.map(map_func=masking)
+    dataset = tf.boolean_mask(dataset,mask)
     dataset = dataset.shuffle(buffer_size=10000)
     dataset = dataset.map(map_func=mappingfunction)
     dataset = dataset.batch(batch_size=100)
