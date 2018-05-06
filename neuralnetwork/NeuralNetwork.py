@@ -132,15 +132,6 @@ def cnn_model(features,labels,mode):
     # Input Tensor Shape: [batch_size, 1024]
     # Output Tensor Shape: [batch_size, 7]
     output = tf.layers.dense(inputs=dropout2, units=8)
-    #loss for floating output
-    '''
-    def reducedelay(x):
-        return tf.subtract(1.,tf.divide(1.,tf.add(1.,tf.square(tf.divide(tf.add(tf.cast(x,tf.float32),60.),180.)))))
-    
-    def ireducedelay(y):
-        y = tf.cast(y,tf.float32)
-        return tf.cast(tf.divide(tf.add(tf.multiply(-60.,y),60-tf.sqrt(tf.multiply(180.**2,tf.multiply((1.-y),y)))),y-1),tf.int64)
-    '''
     
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
@@ -149,25 +140,24 @@ def cnn_model(features,labels,mode):
     
     delay = tf.identity(output, name="delay")
     labels = tf.identity(labels, name = "label")
-    
-
        
     def maplabelstoprob(label):
         gamma = 1
         cd = lambda x: 1/(np.pi*gamma)*tf.divide(gamma**2,tf.add(tf.square(x-tf.transpose([tf.cast(label,tf.float32)])),gamma**2))
-        return cd(tf.cast(tf.range(8)-1,tf.float32))
+        return cd(tf.cast(tf.range(8),tf.float32))
     
  
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=maplabelstoprob(labels+1), logits=delay))
-    #loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=output)
+    #loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=delay)
     #loss = tf.square(tf.cast(labels-predictions['classes'],tf.float32))
     #loss = tf.reduce_mean(tf.sqrt(tf.square(labels - tf.cast(delay, tf.float32))))
+    
+    tf.summary.scalar('loss', loss)
+
     
     predictions = {
       # Generate predictions (for PREDICT and EVAL mode)
       "classes": tf.argmax(input=output, axis=1),
-      # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
-      # `logging_hook`.
     } 
     
     logs = tf.concat([tf.expand_dims(predictions['classes']-1,1),tf.expand_dims(labels,1)],1,name="Accuracy")
@@ -181,8 +171,7 @@ def cnn_model(features,labels,mode):
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
     # Add evaluation metrics (for EVAL mode)
-    eval_metric = {}
-    return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=eval_metric)
+    return tf.estimator.EstimatorSpec(mode=mode, loss=loss)
 
 def main(unused_argv):
     # Load training and eval data
