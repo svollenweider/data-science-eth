@@ -9,11 +9,17 @@ from datetime import datetime
 #only works directly in python prompt, ipython does not work
 
 #Determines probability that an entry is listed in the Training file, separated to "on time" and "late"
-probabilityontime = 0.02
-probabilitylate = 0.2
+probabilityontime = 0.025
+probabilitylate = 0.4
 
 #name of output file
 mode = "Training" #eval or training
+
+if mode == "eval":
+    probabilityontime = probabilityontime/10.
+    probabilitylate = probabilitylate/10.
+    
+DeltaTime = '20m'
 
 #links delay with a label
 def labelling(delay): 
@@ -47,7 +53,7 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
         #get the row 
         row = Tram.iloc[localit]
         #Using the time, get the external data (weather eg.) one hour earlier
-        ExternalRow = External[External.index<Time-pd.Timedelta('1h')]
+        ExternalRow = External[External.index<Time-pd.Timedelta(DeltaTime)]
         #get new value of the counter
         with counter.get_lock():
             oldlocalit = localit
@@ -68,8 +74,8 @@ def worker(counter,q,year,no): #worker that takes an element and puts it into a 
         #find tram number
         fahrzeug = row['fahrzeug']
         #get the  Tram data from one hour earlier to get the delay at that point
-        TrafficRow = Traffic[Traffic.index<Time-pd.Timedelta('1h')]
-        TramEarly = Tram[np.all(np.vstack([Time-pd.Timedelta('1h10m')<Tram.index,Tram.index<Time-pd.Timedelta('1h'),row['fahrzeug']==Tram['fahrzeug']]),axis=0)]        
+        TrafficRow = Traffic[Traffic.index<Time-pd.Timedelta(DeltaTime)]
+        TramEarly = Tram[np.all(np.vstack([Time-pd.Timedelta(DeltaTime)-pd.Timedelta('10m')<Tram.index,Tram.index<Time-pd.Timedelta(DeltaTime),row['fahrzeug']==Tram['fahrzeug']]),axis=0)]        
         if TramEarly.empty:
             prevDelay = 0 #if tramnumber can not be found set delay to 0
         else:
@@ -120,7 +126,7 @@ def combiner(q,NoProcesses,counter,pickup = False,name="Trainigdata"): #takes el
     SortedList = ['Filename','richtung','Distance','MaxFuss','MaxVelo','Days','Uhrzeit','Weekday','Specialday','Lufttemperatur','Windgeschwindigkeit','Windrichtung','Luftdruck','Niederschlag','Luftfeuchte','delayprior','label','altlabel']
     SortedData = pd.DataFrame(data=ValueArray,columns=dfcolumns)[SortedList]
     print("Saving")
-    (SortedData.dropna(axis=0)).to_csv("FinalData/"+mode+"Datafinal.csv",index=False)
+    (SortedData.dropna(axis=0)).to_csv("FinalData/"+mode+DeltaTime+"Datafinal.csv",index=False)
     print("Saved")
     
 def saver(ctr,VA,dfcolumns):

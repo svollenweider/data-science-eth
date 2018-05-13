@@ -9,13 +9,13 @@ import tensorflow as tf
 tf.logging.set_verbosity(tf.logging.INFO)
 
 imagesize = 12
-nooffilters = 32 
-nstrides = 2
-firstlayer = 2048
-secondlayer = 1024
+nooffilters = 6 
+nstrides = 3
+firstlayer = 256
+secondlayer = 64
 #thirdlayer = 512
 
-keys = ['richtung', 'Distance', 'MaxFuss', 'MaxVelo', 'Days', 'Uhrzeit', 'Weekday', 'Specialday', 'Lufttemperatur', 'Windgeschwindigkeit', 'Windrichtung', 'Luftdruck', 'Niederschlag', 'Luftfeuchte', 'delayprior']
+keys = ['richtung', 'Distance', 'MaxFuss', 'MaxVelo', 'Uhrzeit', 'Weekday', 'Specialday', 'Lufttemperatur', 'Luftdruck', 'Niederschlag', 'Luftfeuchte', 'delayprior']
 
 def mappingfunction(feature,label):
     image = tf.read_file('Images/'+feature['Filename'])
@@ -25,7 +25,9 @@ def mappingfunction(feature,label):
     return feature, label
 
 def input_fn():
-    Dataframe = pd.read_csv("TrainingDatafinal.csv",header=0)
+    Dataframe = pd.read_csv("Training20mDatafinal.csv",header=0)
+    Dataframe['delayprior'] = Dataframe['delayprior']/100.
+    Dataframe['altlabel'] = (Dataframe['altlabel']>1).astype('int64')
     features, filenames, labels = Dataframe[keys].values,Dataframe['Filename'].values,Dataframe["altlabel"]
     dataset = tf.data.Dataset.from_tensor_slices(({'x' : features, 'Filename' : filenames},labels))
     dataset = dataset.shuffle(buffer_size=10000)
@@ -35,7 +37,9 @@ def input_fn():
     return dataset
     
 def input_fn_eval():
-    Dataframe = pd.read_csv("evalDatafinal.csv",header=0)
+    Dataframe = pd.read_csv("eval20mDatafinal.csv",header=0)
+    Dataframe['delayprior'] = Dataframe['delayprior']/100.
+    Dataframe['altlabel'] = (Dataframe['altlabel']>1).astype('int64')
     features, filenames, labels = Dataframe[keys].values,Dataframe['Filename'].values,Dataframe["altlabel"]
     dataset = tf.data.Dataset.from_tensor_slices(({'x' : features, 'Filename' : filenames},labels))
     dataset = dataset.shuffle(buffer_size=1000)
@@ -108,17 +112,18 @@ def cnn_model(features,labels,mode):
         if inputlayer is None:
             inputlayer = pool2_flat
         else: inputlayer = tf.concat([inputlayer,pool2_flat],1)
+              
     inputlayer = tf.concat([tf.cast(features['x'],tf.float32),inputlayer],axis=1)
     #inputlayer = tf.cast(features['x'],tf.float32)
     # Dense Layer
-    # Densely connected layer with 1024 neurons
+    # Densely connected layer with neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
     # Output Tensor Shape: [batch_size, 1024]
     dense1 = tf.layers.dense(inputs=inputlayer, units=firstlayer, activation=tf.nn.relu)
 
     # Add dropout operation; 0.6 probability that element will be kept
     dropout1 = tf.layers.dropout(
-      inputs=dense1, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
+      inputs=dense1, rate=0.3, training=mode == tf.estimator.ModeKeys.TRAIN)
       
     dense2 = tf.layers.dense(inputs=dropout1, units=secondlayer, activation=tf.nn.relu)
 
@@ -131,7 +136,7 @@ def cnn_model(features,labels,mode):
     # Logits layer
     # Input Tensor Shape: [batch_size, 1024]
     # Output Tensor Shape: [batch_size, 7]
-    output = tf.layers.dense(inputs=dropout2, units=8)
+    output = tf.layers.dense(inputs=dropout1, units=2)
     #loss for floating output
     '''
     def reducedelay(x):
@@ -155,11 +160,11 @@ def cnn_model(features,labels,mode):
     def maplabelstoprob(label):
         gamma = 1
         cd = lambda x: 1/(np.pi*gamma)*tf.divide(gamma**2,tf.add(tf.square(x-tf.transpose([tf.cast(label,tf.float32)])),gamma**2))
-        return cd(tf.cast(tf.range(8)-1,tf.float32))
+        return cd(tf.cast(tf.range(8),tf.float32))
     
  
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=maplabelstoprob(labels+1), logits=delay))
-    #loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=output)
+    #loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=maplabelstoprob(labels+1), logits=delay))
+    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=output)
     #loss = tf.square(tf.cast(labels-predictions['classes'],tf.float32))
     #loss = tf.reduce_mean(tf.sqrt(tf.square(labels - tf.cast(delay, tf.float32))))
     
@@ -170,11 +175,11 @@ def cnn_model(features,labels,mode):
       # `logging_hook`.
     } 
     
-    logs = tf.concat([tf.expand_dims(predictions['classes']-1,1),tf.expand_dims(labels,1)],1,name="Accuracy")
+    logs = tf.concat([tf.expand_dims(predictions['classes'],1),tf.expand_dims(labels,1)],1,name="Accuracy")
     
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0005)
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.005)
         train_op = optimizer.minimize(
             loss=loss,
             global_step=tf.train.get_global_step())
